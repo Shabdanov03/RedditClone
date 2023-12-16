@@ -16,8 +16,8 @@ import static jakarta.persistence.FetchType.LAZY;
 @Entity
 public class Comment {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE,generator = "comment_id_gen")
-    @SequenceGenerator(name = "comment_id_gen",sequenceName = "comment_id_seq",allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "comment_id_gen")
+    @SequenceGenerator(name = "comment_id_gen", sequenceName = "comment_id_seq", allocationSize = 1)
     private Long id;
     private String text;
     @ManyToOne(fetch = LAZY)

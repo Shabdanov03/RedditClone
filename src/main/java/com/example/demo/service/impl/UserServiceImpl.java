@@ -1,7 +1,7 @@
 package com.example.demo.service.impl;
 
 import com.example.demo.config.jwtConfig.JwtService;
-import com.example.demo.dto.request.auth.AuthenticationRequest;
+import com.example.demo.dto.request.auth.SignInRequest;
 import com.example.demo.dto.request.auth.SignUpRequest;
 import com.example.demo.dto.response.auth.AuthenticationResponse;
 import com.example.demo.entity.User;
@@ -11,7 +11,6 @@ import com.example.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +29,7 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
             throw new RuntimeException("Sorry, this email is already registered. Please try a different email or login to your existing account");
         }
-        var newUser = User.builder()
+        User newUser = User.builder()
                 .userName(signUpRequest.getUserName())
                 .email(signUpRequest.getEmail())
                 .password(passwordEncoder.encode(signUpRequest.getPassword()))
@@ -52,26 +51,26 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public AuthenticationResponse signIn(AuthenticationRequest authenticationRequest) {
-        log.info("Signing in");
-        var user = userRepository.findByEmail(authenticationRequest.getEmail())
-                .orElseThrow(() -> new RuntimeException("User was not found."));
-
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        authenticationRequest.getEmail(),
-                        authenticationRequest.getPassword()
-                )
-        );
-
-        var jwtToken = jwtService.generateToken(user);
-
-        log.info("Sign in successful");
-
+    public AuthenticationResponse signIn(SignInRequest signInRequest) {
+        User user = userRepository.findUserByEmail(signInRequest.getEmail())
+                .orElseThrow(() -> {
+                    log.error("User with email: %s not found".formatted(signInRequest.getEmail()));
+                    return new RuntimeException(
+                            "User with email: %s not found".formatted(signInRequest.getEmail()));
+                });
+        if (signInRequest.getPassword().isBlank()) {
+            log.error("Password is blank!");
+            throw new RuntimeException("Email is blank!");
+        }
+        if (!passwordEncoder.matches(signInRequest.getPassword(), user.getPassword())) {
+            log.error("Wrong password");
+            throw new RuntimeException("Wrong password!");
+        }
+        log.info("Generation of a token for a registered user");
         return AuthenticationResponse
                 .builder()
-                .token(jwtToken)
-                .email(user.getUsername())
+                .token(jwtService.generateToken(user))
+                .email(user.getEmail())
                 .role(user.getRole())
                 .build();
     }
